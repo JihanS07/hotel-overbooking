@@ -2,8 +2,8 @@
 
 [![CI](https://github.com/JihanS07/hotel-overbooking/actions/workflows/ci.yml/badge.svg)](https://github.com/JihanS07/hotel-overbooking/actions/workflows/ci.yml)
 
-Hotels overbook because some guests cancel or never show up. Accept too few bookings and rooms sit
-empty. Accept too many and a guest gets turned away at the desk. This project predicts which bookings
+Hotels overbook because some guests cancel or never show up, accept too few bookings and rooms sit
+empty or accept too many and a guest gets turned away at the desk. This project predicts which bookings
 will cancel, uses those probabilities to decide how many extra bookings to accept for each night,
 and writes a recommendation with the reasons behind it that a person has to approve.
 
