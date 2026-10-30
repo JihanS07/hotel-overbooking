@@ -7,7 +7,7 @@ empty or accept too many and a guest gets turned away at the desk. This project 
 will cancel, uses those probabilities to decide how many extra bookings to accept for each night,
 and writes a recommendation with the reasons behind it that a person has to approve.
 
-Status: project setup, data download and leak audit. The models and decision step come next.
+Status: project setup, data download, leak audit and cancellation models. The decision step comes next.
 
 ## Data
 
@@ -56,6 +56,26 @@ Checked and kept for now:
 
 These checks show patterns, not proof. Nothing in the data says when each field was written.
 
+## Cancellation model
+
+`uv run overbook evaluate-models` trains on bookings that arrive before 2017-03-01 (86,561 bookings,
+36% canceled) and tests on the later ones (32,829 bookings, 40% canceled). Splitting by arrival date
+means the model never sees the future. The inputs are the numeric columns and seven categorical
+columns listed in `src/hotel_overbooking/model.py`. Country, agent and company are left out for now.
+
+| Model | AUC | Brier score |
+| --- | --- | --- |
+| Base rate (train cancel rate for everyone) | 0.500 | 0.2417 |
+| Logistic regression | 0.804 | 0.1680 |
+| Gradient boosting | 0.815 | 0.1697 |
+
+Gradient boosting ranks bookings slightly better, but logistic regression has the better Brier score,
+so its probabilities are closer to the true rates. The calibration tables are printed by the command.
+Both models under-predict cancellations in the middle bins, because the test months cancel more than
+the training months. The top bin holds about 3,400 bookings predicted at 99% that cancel 99.9% of the
+time. These are non-refundable bookings: 99.4% of them are canceled in this dataset. That pattern is
+odd for a real hotel and is worth knowing before trusting the result.
+
 ## Quickstart
 
 Requires Python 3.12+ and [uv](https://docs.astral.sh/uv/).
@@ -65,5 +85,6 @@ make install
 make data
 uv run overbook info
 uv run overbook audit
+uv run overbook evaluate-models
 make check
 ```
