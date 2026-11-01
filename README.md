@@ -7,7 +7,7 @@ empty or accept too many and a guest gets turned away at the desk. This project 
 will cancel, uses those probabilities to decide how many extra bookings to accept for each night,
 and writes a recommendation with the reasons behind it that a person has to approve.
 
-Status: project setup, data download, leak audit and cancellation models. The decision step comes next.
+Status: project setup, data download, leak audit, cancellation models and a logistic regression written from scratch. The decision step comes next.
 
 ## Data
 
@@ -75,6 +75,23 @@ Both models under-predict cancellations in the middle bins, because the test mon
 the training months. The top bin holds about 3,400 bookings predicted at 99% that cancel 99.9% of the
 time. These are non-refundable bookings: 99.4% of them are canceled in this dataset. That pattern is
 odd for a real hotel and is worth knowing before trusting the result.
+
+## Logistic regression from scratch
+
+`src/hotel_overbooking/scratch.py` fits the same logistic regression with plain NumPy. It uses
+full-batch gradient descent on the mean log loss plus an L2 penalty, on the same scaled and one-hot
+features as the scikit-learn model. The penalty is set so it matches scikit-learn's `C=1.0`, and the
+intercept is not penalized.
+
+`tests/test_scratch.py` checks that the coefficients, the intercept and the predicted probabilities
+agree with scikit-learn within 1e-3 on a small fake dataset. On a random sample of 3,000 real training
+bookings (30,000 steps) I measured the largest gap: 0.005 for a coefficient, 0.021 for the intercept and
+0.0005 for a predicted probability. The one-hot columns add up to one, which makes the loss almost flat
+in one direction, so gradient descent settles slower there than scikit-learn's solver. The predictions
+still agree.
+
+What it shows: the model is not a black box. Each prediction is a sum of weights times scaled feature
+values passed through a sigmoid. The recommendation step will use these weights to explain each booking.
 
 ## Quickstart
 
