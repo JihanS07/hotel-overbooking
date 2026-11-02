@@ -4,6 +4,7 @@ import pandas as pd
 import typer
 
 from .data import DEFAULT_PATH, load_bookings, summary
+from .decision import estimate_capacity, run_backtest
 from .leaks import checkin_signals, outcome_leaks
 from .model import DEFAULT_CUTOFF, evaluate
 
@@ -38,3 +39,13 @@ def evaluate_models(path: Path = DEFAULT_PATH, cutoff: str = DEFAULT_CUTOFF) -> 
     for name, table in result["calibration"].items():  # type: ignore[union-attr]
         typer.echo(f"\ncalibration, {name}")
         typer.echo(table.round(3).to_string(index=False))
+
+
+@app.command(help="Backtest accepting extra bookings against accepting none.")
+def decide(path: Path = DEFAULT_PATH, cutoff: str = DEFAULT_CUTOFF) -> None:
+    df = load_bookings(path)
+    typer.echo(f"estimated capacity (busiest night): {estimate_capacity(df)}")
+    typer.echo("\nonly bookings still active 30 days before arrival")
+    typer.echo(run_backtest(df, cutoff, 30).round(2).to_string())
+    typer.echo("\nevery booking request, in the order it was made")
+    typer.echo(run_backtest(df, cutoff, None).round(2).to_string())

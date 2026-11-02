@@ -93,6 +93,32 @@ still agree.
 What it shows: the model is not a black box. Each prediction is a sum of weights times scaled feature
 values passed through a sigmoid. The recommendation step will use these weights to explain each booking.
 
+## Overbooking decision
+
+`src/hotel_overbooking/decision.py` decides how many bookings to accept for a night. The data has no
+room counts, so capacity is an assumption: the busiest observed night of arriving guests who did not
+cancel. That gives 204 for the city hotel and 116 for the resort hotel. These are arrivals per night,
+not rooms in the building.
+
+For each hotel and arrival night in the test period, bookings are sorted by the date they were made.
+The exact distribution of how many guests show up is the Poisson binomial distribution of the model's
+show probabilities, built with a simple dynamic program. The code picks how many bookings to accept by
+minimizing expected cost, where an empty room costs 1 and a walked guest costs a chosen multiple of that.
+The baseline accepts bookings only up to capacity. Both are scored on what really happened.
+
+`overbook decide` runs two setups on the test period (arrivals from 2017-03-01).
+
+- Bookings still active 30 days before arrival. This uses `reservation_status_date` only to build the
+  test setup, never as a model input, and the model is trained on the same kind of bookings. Result: no
+  night has more such bookings than rooms, so nothing changes. Cost is 45,372 empty-room units either way.
+- Every booking request in the order it was made. Ten nights have more requests than rooms. The model
+  accepts 153 extra bookings on those nights. Nobody is walked, and empty rooms drop from 39,439 to
+  39,334 (0.27 percent). The result is the same for walk-to-empty cost ratios 1, 2, 3, 5 and 10,
+  because no extra guest ended up without a room.
+
+Limits: the gain is small, it comes from ten nights, and the capacity is a guess. Late bookings are
+ignored in the first setup, so it cannot show a benefit by design.
+
 ## Quickstart
 
 Requires Python 3.12+ and [uv](https://docs.astral.sh/uv/).
@@ -103,5 +129,6 @@ make data
 uv run overbook info
 uv run overbook audit
 uv run overbook evaluate-models
+uv run overbook decide
 make check
 ```
